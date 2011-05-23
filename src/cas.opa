@@ -26,7 +26,7 @@ package mattgu74.cas
 type Cas.config = 
   {
     url : string ;  // Url of the cas service
-    service : string // Url of the server
+    service : string // Url of the serve
   }
 
 type Cas.ticket = { ticket : string } / {no}
@@ -37,7 +37,7 @@ Cas(conf : Cas.config) = {{
     String.concat("", [conf.url, "login?service=", conf.service, "/CAS/ticket"])
 
   @private server_validate(uri) =
-    match WebClient.Get.try_get(uri) with
+    match WebClient.Result.as_xml(WebClient.Get.try_get(uri)) with
       | {failure = _} -> <>Error, could not connect></>
       | {~success}    -> match WebClient.Result.get_class(success) with
         | {success} -> <>{success.content}</>
