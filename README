@@ -1,0 +1,17 @@
+A simple module for CAS authentification in Opa.
+
+See : http://www.jasig.org/cas/protocol  for the protocol
+
+BUILDING
+ make
+
+LAUNCHING
+On one server:
+ ./cas_test.exe
+(launches on port 8080)
+
+or
+ ./cas_test.exe --server-port nnnn
+
+src/main.opa is an application test of the module.
+src/cas.opa is the cas module in opa.
