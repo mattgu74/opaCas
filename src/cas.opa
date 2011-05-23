@@ -31,7 +31,12 @@ type Cas.config =
 
 type Cas.ticket = { ticket : string } / {no}
 
+type Cas.status = { logged : string } / { unlogged }
+type Cas.info = UserContext.t(Cas.status)
+
 Cas(conf : Cas.config) = {{
+
+  @private state = UserContext.make({ unlogged } : Cas.status)
 
   login_url() =
     String.concat("", [conf.url, "login?service=", conf.service, "/CAS/ticket"])
@@ -40,9 +45,15 @@ Cas(conf : Cas.config) = {{
     match WebClient.Result.as_xml(WebClient.Get.try_get(uri)) with
       | {failure = _} -> <>Error, could not connect></>
       | {~success}    -> match WebClient.Result.get_class(success) with
-        | {success} -> <>{success.content}</>
+        | {success} -> do UserContext.change((_ -> { logged = Xmlns.to_string(success.content) } : Cas.status), state)
+                       <>{success.content}</>
         | _         -> <>Error {success.code}</>
     end
+
+  get_status() =
+    match UserContext.execute(( a -> a), state) with
+     | {logged = l} -> l
+     | {unlogged} -> "Unlogged"
 
   validate(t) =
    the_uri = Uri.of_string( String.concat( "" , [conf.url, "serviceValidate?service=", conf.service, "/CAS/ticket&ticket=", t]))
