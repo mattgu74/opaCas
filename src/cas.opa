@@ -41,6 +41,9 @@ Cas(conf : Cas.config) = {{
   login_url() =
     String.concat("", [conf.url, "login?service=", conf.service, "/CAS/ticket"])
 
+  logout_url() =
+    String.concat("", [conf.url, "logout?url=", conf.service])
+
   @private server_validate(uri) =
     match WebClient.Result.as_xml(WebClient.Get.try_get(uri)) with
       | {failure = _} -> <>Error, could not connect></>
@@ -69,6 +72,10 @@ Cas(conf : Cas.config) = {{
   login() =
     Resource.default_redirection_page(login_url())
 
+  logout() =
+    do UserContext.change(( _ -> { unlogged }), state) 
+    Resource.default_redirection_page(logout_url())
+
   ticket(n) = 
     myParser =
      parser
@@ -86,6 +93,8 @@ Cas(conf : Cas.config) = {{
     parser
     | "/CAS/login" ->
       login()
+    | "/CAS/logout" ->
+      logout()
     | "/CAS/ticket" n=(.*) ->
       ticket(Text.to_string(n)) 
     | "/CAS" .* ->
