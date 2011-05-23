@@ -90,9 +90,7 @@ Cas(conf : Cas.config) = {{
     end
 
   get_status() =
-    match UserContext.execute(( a -> a), state) with
-     | {logged = l} -> l
-     | {unlogged} -> "Unlogged"
+    UserContext.execute(( a -> a), state)
 
   validate(t) =
    the_uri = Uri.of_string( String.concat( "" , [conf.url, "serviceValidate?service=", conf.service, "/CAS/ticket&ticket=", t]))

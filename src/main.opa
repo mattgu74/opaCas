@@ -7,16 +7,23 @@
 import mattgu74.cas
 
 cas_conf = {
-  url = "https://cas.server/cas/" ; // <<-- sample url
+  url = "https://cas.server.domain/cas/" ; // <<-- sample url
   service = "http://localhost:8080"
  } : Cas.config
 
 myCas = Cas(cas_conf)
 
 start() =
+  status = myCas.get_status()
+  msg = match status with 
+    | {logged = user} -> <>Welcome {user}</><br />
+                         <a href="/CAS/logout"> Logout </a>
+    | {unlogged} -> <> You're not logged-in </><br />
+                    <a href="/CAS/login"> Login </a>
+
   body = <> Test du module CAS </><br />
-         <a href="/CAS/login"> Login </a><br />
-         <>{myCas.get_status()}</>
+         <>{msg}</>
+
   Resource.html("CAS module", body)
 
 
