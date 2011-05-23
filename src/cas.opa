@@ -26,7 +26,7 @@ package mattgu74.cas
 type Cas.config = 
   {
     url : string ;  // Url of the cas service
-    service : string // Url of the serve
+    service : string // Url of the service
   }
 
 type Cas.ticket = { ticket : string } / {no}
@@ -38,19 +38,55 @@ Cas(conf : Cas.config) = {{
 
   @private state = UserContext.make({ unlogged } : Cas.status)
 
-  login_url() =
+  @private login_url() =
     String.concat("", [conf.url, "login?service=", conf.service, "/CAS/ticket"])
 
-  logout_url() =
+  @private logout_url() =
     String.concat("", [conf.url, "logout?url=", conf.service])
+
+  @private xml_match(xml) = 
+    match xml with
+      | {namespace = name; tag = tag; args = args;
+        content = cont; specific_attributes = _ } -> {name = name ; tag = tag ; args = args ; cont = cont} 
+      | _ -> { name = "" ; tag = "" ; args = [] ; cont = []} 
+
+  @private status_from_xml(xml) =
+   match xml_match(xml) with
+    | {name = "cas"; tag="serviceResponse" ; args=_ ; cont=c1} -> 
+      funa(x1) = 
+        match xml_match(x1) with 
+          | {name = "cas"; tag="authenticationSuccess" ; ... } -> true
+          | _ -> false
+        end
+      next1 = List.find(funa,c1)
+      match next1 with
+        | {some = s1} -> 
+          funb(x2) = 
+            match xml_match(x2) with 
+              | {name = "cas"; tag="user" ; ... } -> true
+              | _ -> false
+             end
+            w = xml_match(s1)
+            next2 = List.find(funb,w.cont)
+            match next2 with
+              | {some = s2} -> w = xml_match(s2)
+                               match List.head(w.cont) with
+                                | {text = t} -> {logged = t}
+                                | _ -> {unlogged}
+                               end
+              | {none} -> {unlogged}
+             end
+        | _ -> { unlogged }
+       end
+    | _ -> { unlogged }
 
   @private server_validate(uri) =
     match WebClient.Result.as_xml(WebClient.Get.try_get(uri)) with
-      | {failure = _} -> <>Error, could not connect></>
+      | {failure = _} -> void
       | {~success}    -> match WebClient.Result.get_class(success) with
-        | {success} -> do UserContext.change((_ -> { logged = Xmlns.to_string(success.content) } : Cas.status), state)
-                       <>{success.content}</>
-        | _         -> <>Error {success.code}</>
+        | {success} -> do UserContext.change((_ -> status_from_xml(success.content) ), state)
+                       void
+        | _         -> void
     end
 
   get_status() =
@@ -62,7 +98,7 @@ Cas(conf : Cas.config) = {{
    the_uri = Uri.of_string( String.concat( "" , [conf.url, "serviceValidate?service=", conf.service, "/CAS/ticket&ticket=", t]))
    match the_uri with
      | {some = uri} -> server_validate(uri)
-     | {none} -> <> Error 001 </>
+     | {none} -> void
 
 
   start() =
@@ -84,10 +120,10 @@ Cas(conf : Cas.config) = {{
      | .* -> 
        {no}
     ticket = Parser.parse(myParser, n)
-    body = match ticket with
+    do match ticket with
        | { ticket = t } -> validate(t)
-       | {no} -> <> Error </>
-    Resource.html("CAS module", body)    
+       | {no} -> void
+    Resource.redirection_page("",<></>,{success},0,conf.service)
 
   resource : Parser.general_parser(resource) =
     parser
