@@ -70,11 +70,11 @@ Cas(conf : Cas.config) = {{
     Resource.html("CAS module", body)
 
   login() =
-    Resource.default_redirection_page(login_url())
+    Resource.redirection_page("",<></>,{success},0,login_url())
 
   logout() =
     do UserContext.change(( _ -> { unlogged }), state) 
-    Resource.default_redirection_page(logout_url())
+    Resource.redirection_page("",<></>,{success},0,logout_url())
 
   ticket(n) = 
     myParser =
